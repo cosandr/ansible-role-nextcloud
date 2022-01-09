@@ -1,0 +1,19 @@
+---
+
+- name: enable and start redis
+  systemd:
+    name: redis
+    state: started
+    enabled: true
+
+- name: restart apache
+  systemd:
+    name: httpd
+    state: restarted
+
+- name: enable and start nextcloud cron timer
+  systemd:
+    name: nextcloud-cron.timer
+    state: started
+    enabled: true
+    daemon_reload: true

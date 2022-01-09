@@ -1,0 +1,61 @@
+---
+
+nextcloud_proxies: ["127.0.0.1"]
+nextcloud_domain: "nextcloud.example.com"
+nextcloud_php_version: "8.0"
+nextcloud_port: 443
+nextcloud_server_name: "{{ ansible_host }}"
+nextcloud_default_phone_region: "NO"
+nextcloud_config_overwrite: false
+
+nextcloud_max_upload_size: "1024M"
+nextcloud_version: "23.0.0"
+nextcloud_requirements:
+  - bzip2
+  - curl
+  - ffmpeg
+  - httpd
+  - mlocate
+  - mod_ssl
+  - php
+  - php-ftp
+  - php-gd
+  - php-intl
+  - php-json
+  - php-bcmath
+  - php-gmp
+  - php-mbstring
+  - php-mysqlnd
+  - php-opcache
+  - php-pecl-apcu
+  - php-pecl-imagick
+  - php-pecl-memcached
+  - php-pecl-redis5
+  - php-pgsql
+  - php-phpiredis
+  - php-process
+  - php-smbclient
+  - php-zip
+  - policycoreutils-python-utils
+  - unzip
+  - wget
+  - yum-utils
+
+nextcloud_apache_modules:
+  - rewrite
+  - headers
+  - env
+  - dir
+  - mime
+
+nextcloud_php_config:
+  - regexp: '^;?always_populate_raw_post_data\s*='
+    line: 'always_populate_raw_post_data=-1'
+  - regexp: '^;?memory_limit\s*='
+    line: 'memory_limit=512M'
+  - regexp: '^;?max_execution_time\s*='
+    line: 'max_execution_time=120'
+  - regexp: '^;?upload_max_filesize\s*='
+    line: 'upload_max_filesize={{ nextcloud_max_upload_size }}'
+  - regexp: '^;?post_max_size\s*='
+    line: 'post_max_size={{ nextcloud_max_upload_size }}'

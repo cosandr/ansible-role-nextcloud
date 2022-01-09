@@ -1,0 +1,14 @@
+<?php
+$CONFIG = array (
+  'default_phone_region' => '{{ nextcloud_default_phone_region }}',
+  'trusted_proxies'   => {{ nextcloud_proxies | to_json }},
+  'overwritehost'     => '{{ nextcloud_domain }}',
+  'overwriteprotocol' => 'https',
+  'memcache.distributed' => '\OC\Memcache\Redis',
+  'memcache.locking' => '\OC\Memcache\Redis',
+  'memcache.local' => '\OC\Memcache\APCu',
+  'redis' => array(
+    'host' => 'localhost',
+    'port' => 6379,
+  ),
+);

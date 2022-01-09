@@ -1,0 +1,205 @@
+---
+
+- name: Install Remi repo
+  dnf:
+    name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
+    state: present
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Reset PHP module
+  command: dnf -y module reset php
+  changed_when: false
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Enable Remi PHP {{ nextcloud_php_version }}
+  command: "dnf -y module enable php:remi-{{ nextcloud_php_version }}"
+  changed_when: false
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Install RPM Fusion
+  dnf:
+    name:
+      - "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+      - "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Enable powertools
+  command: "dnf config-manager --enable powertools"
+  changed_when: false
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Install packages
+  dnf:
+    name: "{{ nextcloud_requirements }}"
+    state: present
+  tags:
+    - "install"
+    - "reqs"
+
+- name: Install redis
+  dnf:
+    name: redis
+    state: present
+  notify: enable and start redis
+  tags:
+    - "install"
+    - "reqs"
+    - "redis"
+
+- name: Enable and start apache
+  systemd:
+    name: httpd
+    state: started
+    enabled: true
+  tags: ["apache"]
+
+- name: Download Nextcloud {{ nextcloud_version }}
+  get_url:
+    url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip"
+    dest: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
+    checksum: "sha256:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip.sha256"
+  tags:
+    - "install"
+    - "download"
+
+- name: Unarchive Nextcloud
+  unarchive:
+    src: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
+    dest: /var/www/html
+    remote_src: true
+  tags:
+    - "install"
+    - "unarchive"
+
+- name: Create Nextcloud data dir
+  file:
+    path: /var/www/html/nextcloud/data
+    state: directory
+    owner: apache
+    group: apache
+  tags: ["install"]
+
+- name: Set /var/www/html ownership
+  file:
+    path: /var/www/html
+    state: directory
+    recurse: true
+    owner: apache
+    group: apache
+  tags: ["owner"]
+
+- block:
+    - name: Set SELinux contexts
+      sefcontext:
+        target: "{{ item }}"
+        setype: httpd_sys_rw_content_t
+        state: present
+      loop:
+        - '/var/www/html/nextcloud/data(/.*)?'
+        - '/var/www/html/nextcloud/config(/.*)?'
+        - '/var/www/html/nextcloud/apps(/.*)?'
+        - '/var/www/html/nextcloud/.htaccess'
+        - '/var/www/html/nextcloud/.user.ini'
+        - '/var/www/html/nextcloud/3rdparty/aws/aws-sdk-php/src/data/logs(/.*)?'
+
+    - name: Restore SELinux contexts
+      command: restorecon -r /var/www/html/nextcloud
+
+    - name: Enable httpd_can_network_connect
+      seboolean:
+        name: httpd_can_network_connect
+        state: true
+        persistent: true
+
+  when: ansible_selinux.status == "enabled"
+  tags: ["owner"]
+
+- name: Enable Apache2 modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ nextcloud_apache_modules }}"
+  tags: ["apache"]
+
+- name: Copy Apache config
+  template:
+    src: nextcloud.conf.j2
+    dest: /etc/httpd/conf.d/nextcloud.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart apache
+  tags: ["apache"]
+
+- name: Copy initial nextcloud config
+  template:
+    src: config.php.j2
+    dest: /var/www/html/nextcloud/config/config.php
+    force: "{{ nextcloud_config_overwrite | bool }}"
+    owner: apache
+    group: apache
+    mode: 0640
+  tags: ["configure"]
+
+- name: Enable ACPu CLI
+  lineinfile:
+    dest: "/etc/php.d/40-apcu.ini"
+    regexp: '^;?apc.enable_cli\s*='
+    line: "apc.enable_cli=1"
+    state: present
+  tags: ["php"]
+
+- name: Configure opcache
+  lineinfile:
+    dest: "/etc/php.d/10-opcache.ini"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - regexp: '^;?opcache.enable\s*='
+      line: 'opcache.enable=1'
+    - regexp: '^;?opcache.interned_strings_buffer\s*='
+      line: 'opcache.interned_strings_buffer=8'
+    - regexp: '^;?opcache.max_accelerated_files\s*='
+      line: 'opcache.max_accelerated_files=10000'
+    - regexp: '^;?opcache.memory_consumption\s*='
+      line: 'opcache.memory_consumption=128'
+    - regexp: '^;opcache.save_comments\s*='
+      line: 'opcache.save_comments=1'
+    - regexp: '^;?opcache.revalidate_freq\s*='
+      line: 'opcache.revalidate_freq=1'
+  tags: ["php"]
+
+- name: Configure php.ini
+  lineinfile:
+    dest: "/etc/php.ini"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop: "{{ nextcloud_php_config | flatten(levels=1) }}"
+  tags: ["php"]
+
+- name: Install Nextcloud cron jobs
+  copy:
+    src: "nextcloud-cron.{{ item }}"
+    dest: "/etc/systemd/system/nextcloud-cron.{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: enable and start nextcloud cron timer
+  loop:
+    - service
+    - timer
+  tags: ["cron"]

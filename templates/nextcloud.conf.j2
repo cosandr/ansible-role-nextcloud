@@ -1,0 +1,18 @@
+<VirtualHost *:{{ nextcloud_port }}>
+  DocumentRoot /var/www/html/nextcloud/
+  ServerName  {{ nextcloud_server_name }}
+  SSLEngine on
+  SSLCertificateFile /etc/pki/tls/certs/localhost.crt
+  SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
+
+  <Directory /var/www/html/nextcloud/>
+    Require all granted
+    AllowOverride All
+    Options FollowSymLinks MultiViews
+
+    <IfModule mod_dav.c>
+      Dav off
+    </IfModule>
+
+  </Directory>
+</VirtualHost>
