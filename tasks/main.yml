@@ -159,6 +159,9 @@
     regexp: '^;?apc.enable_cli\s*='
     line: "apc.enable_cli=1"
     state: present
+  notify:
+    - restart apache
+    - restart php-fpm
   tags: ["php"]
 
 - name: Configure opcache
@@ -180,6 +183,9 @@
       line: 'opcache.save_comments=1'
     - regexp: '^;?opcache.revalidate_freq\s*='
       line: 'opcache.revalidate_freq=1'
+  notify:
+    - restart apache
+    - restart php-fpm
   tags: ["php"]
 
 - name: Configure php.ini
@@ -189,6 +195,9 @@
     line: "{{ item.line }}"
     state: present
   loop: "{{ nextcloud_php_config | flatten(levels=1) }}"
+  notify:
+    - restart apache
+    - restart php-fpm
   tags: ["php"]
 
 - name: Install Nextcloud cron jobs

@@ -11,6 +11,11 @@
     name: httpd
     state: restarted
 
+- name: restart php-fpm
+  systemd:
+    name: php-fpm
+    state: restarted
+
 - name: enable and start nextcloud cron timer
   systemd:
     name: nextcloud-cron.timer
