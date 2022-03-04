@@ -172,6 +172,21 @@
     - restart php-fpm
   tags: ["php"]
 
+- name: Configure php-fpm
+  lineinfile:
+    dest: "/etc/php-fpm.d/www.conf"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop: "{{ nextcloud_php_fpm_config | flatten(levels=1) }}"
+  loop_control:
+    label: "{{ item.line }}"
+  notify:
+    - restart apache
+    - restart php-fpm
+  tags: ["php", "php-fpm"]
+  when: nextcloud_config_php_fpm | bool
+
 - name: Configure opcache
   lineinfile:
     dest: "/etc/php.d/10-opcache.ini"
@@ -191,6 +206,8 @@
       line: 'opcache.save_comments=1'
     - regexp: '^;?opcache.revalidate_freq\s*='
       line: 'opcache.revalidate_freq=1'
+  loop_control:
+    label: "{{ item.line }}"
   notify:
     - restart apache
     - restart php-fpm
@@ -203,6 +220,8 @@
     line: "{{ item.line }}"
     state: present
   loop: "{{ nextcloud_php_config | flatten(levels=1) }}"
+  loop_control:
+    label: "{{ item.line }}"
   notify:
     - restart apache
     - restart php-fpm

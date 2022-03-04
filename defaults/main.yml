@@ -66,3 +66,17 @@ nextcloud_php_config:
     line: 'upload_max_filesize={{ nextcloud_max_upload_size }}'
   - regexp: '^;?post_max_size\s*='
     line: 'post_max_size={{ nextcloud_max_upload_size }}'
+
+# https://chrismoore.ca/2018/10/finding-the-correct-pm-max-children-settings-for-php-fpm/
+nextcloud_avg_proc_mem: 65
+__pm_max_children: "{{ (ansible_memtotal_mb * 0.9 / nextcloud_avg_proc_mem) | int }}"
+nextcloud_php_fpm_config:
+  - regexp: '^;?pm\.max_children\s*='
+    line: 'pm.max_children = {{ __pm_max_children }}'
+  - regexp: '^;?pm\.start_servers\s*='
+    line: 'pm.start_servers = {{ ((__pm_max_children | float) * 0.25) | int }}'
+  - regexp: '^;?pm\.min_spare_servers\s*='
+    line: 'pm.min_spare_servers = {{ ((__pm_max_children | float) * 0.25) | int }}'
+  - regexp: '^;?pm\.max_spare_servers\s*='
+    line: 'pm.max_spare_servers = {{ ((__pm_max_children | float) * 0.75) | int }}'
+nextcloud_config_php_fpm: true
