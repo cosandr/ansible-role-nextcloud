@@ -6,6 +6,7 @@
   SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
 
   <Directory /var/www/html/nextcloud/>
+    Satisfy Any
     Require all granted
     AllowOverride All
     Options FollowSymLinks MultiViews
