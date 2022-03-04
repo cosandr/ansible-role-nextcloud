@@ -143,6 +143,14 @@
   notify: restart apache
   tags: ["apache"]
 
+- name: Configure SSL
+  include_tasks:
+    file: ssl.yml
+    apply:
+      tags: ["apache", "ssl"]
+  when: nextcloud_generate_certificate | bool
+  tags: ["apache", "ssl"]
+
 - name: Copy initial nextcloud config
   template:
     src: config.php.j2

@@ -2,8 +2,8 @@
   DocumentRoot /var/www/html/nextcloud/
   ServerName  {{ nextcloud_server_name }}
   SSLEngine on
-  SSLCertificateFile /etc/pki/tls/certs/localhost.crt
-  SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
+  SSLCertificateFile {{ nextcloud_ssl_certificate }}
+  SSLCertificateKeyFile {{ nextcloud_ssl_private_key }}
 
   <Directory /var/www/html/nextcloud/>
     Satisfy Any

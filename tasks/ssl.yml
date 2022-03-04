@@ -1,0 +1,39 @@
+---
+
+- name: Install RPM requirements
+  dnf:
+    name:
+      - python3-cryptography
+      - openssl
+    state: present
+  tags: ["install"]
+
+- name: Generate private key
+  openssl_privatekey:
+    path: "{{ nextcloud_ssl_private_key }}"
+    size: 4096
+    owner: "root"
+    group: "root"
+    mode: 0600
+  notify: restart apache
+
+- name: Generate CSR
+  openssl_csr:
+    path: "/etc/pki/tls/misc/{{ nextcloud_domain }}.csr"
+    privatekey_path: "{{ nextcloud_ssl_private_key }}"
+    common_name: "{{ nextcloud_certificate_cn }}"
+    subject_alt_name: "{{ nextcloud_certificate_alt_name }}"
+    owner: "root"
+    group: "root"
+    mode: 0640
+
+- name: Sign CSR
+  openssl_certificate:
+    path: "{{ nextcloud_ssl_certificate }}"
+    csr_path: "/etc/pki/tls/misc/{{ nextcloud_domain }}.csr"
+    privatekey_path: "{{ nextcloud_ssl_private_key }}"
+    provider: selfsigned
+    owner: "root"
+    group: "root"
+    mode: 0640
+  notify: restart apache

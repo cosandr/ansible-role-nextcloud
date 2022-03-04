@@ -7,9 +7,16 @@ nextcloud_port: 443
 nextcloud_server_name: "{{ ansible_host }}"
 nextcloud_default_phone_region: "NO"
 nextcloud_config_overwrite: false
+nextcloud_generate_certificate: false
+nextcloud_certificate_cn: "{{ nextcloud_domain }}"
+nextcloud_certificate_alt_name:
+  - "DNS:{{ ansible_host }}"
+  - "DNS:{{ ansible_hostname }}"
+nextcloud_ssl_certificate: "/etc/pki/tls/certs/localhost.crt"
+nextcloud_ssl_private_key: "/etc/pki/tls/private/localhost.key"
 
 nextcloud_max_upload_size: "1024M"
-nextcloud_version: "23.0.0"
+nextcloud_version: "23.0.2"
 nextcloud_requirements:
   - bzip2
   - curl
