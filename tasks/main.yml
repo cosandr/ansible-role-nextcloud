@@ -81,9 +81,9 @@
   when: nextcloud_force_install | bool or not __nc_version.stat.exists
   tags: ["install"]
 
-- name: Set /var/www/html ownership
+- name: Set /var/www/html/nextcloud ownership
   ansible.builtin.file:
-    path: /var/www/html
+    path: /var/www/html/nextcloud
     state: directory
     recurse: true
     owner: apache
