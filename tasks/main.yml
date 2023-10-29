@@ -1,7 +1,7 @@
 ---
 
 - name: Install Remi repo
-  dnf:
+  ansible.builtin.dnf:
     name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
     state: present
   tags:
@@ -9,21 +9,21 @@
     - "reqs"
 
 - name: Reset PHP module
-  command: dnf -y module reset php
+  ansible.builtin.command: dnf -y module reset php
   changed_when: false
   tags:
     - "install"
     - "reqs"
 
 - name: Enable Remi PHP {{ nextcloud_php_version }}
-  command: "dnf -y module enable php:remi-{{ nextcloud_php_version }}"
+  ansible.builtin.command: "dnf -y module enable php:remi-{{ nextcloud_php_version }}"
   changed_when: false
   tags:
     - "install"
     - "reqs"
 
 - name: Install RPM Fusion
-  dnf:
+  ansible.builtin.dnf:
     name:
       - "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
       - "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
@@ -34,14 +34,14 @@
     - "reqs"
 
 - name: Enable powertools
-  command: "dnf config-manager --enable powertools"
+  ansible.builtin.command: "dnf config-manager --enable powertools"
   changed_when: false
   tags:
     - "install"
     - "reqs"
 
 - name: Install packages
-  dnf:
+  ansible.builtin.dnf:
     name: "{{ nextcloud_requirements }}"
     state: present
   tags:
@@ -49,33 +49,34 @@
     - "reqs"
 
 - name: Install redis
-  dnf:
+  ansible.builtin.dnf:
     name: redis
     state: present
-  notify: enable and start redis
+  notify: Enable and start redis
   tags:
     - "install"
     - "reqs"
     - "redis"
 
 - name: Enable and start apache
-  systemd:
+  ansible.builtin.systemd:
     name: httpd
     state: started
     enabled: true
   tags: ["apache"]
 
 - name: Download Nextcloud {{ nextcloud_version }}
-  get_url:
+  ansible.builtin.get_url:
     url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip"
     dest: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
     checksum: "sha256:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip.sha256"
+    mode: "0644"
   tags:
     - "install"
     - "download"
 
 - name: Unarchive Nextcloud
-  unarchive:
+  ansible.builtin.unarchive:
     src: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
     dest: /var/www/html
     remote_src: true
@@ -84,15 +85,16 @@
     - "unarchive"
 
 - name: Create Nextcloud data dir
-  file:
+  ansible.builtin.file:
     path: /var/www/html/nextcloud/data
     state: directory
     owner: apache
     group: apache
+    mode: "0770"
   tags: ["install"]
 
 - name: Set /var/www/html ownership
-  file:
+  ansible.builtin.file:
     path: /var/www/html
     state: directory
     recurse: true
@@ -100,9 +102,12 @@
     group: apache
   tags: ["owner"]
 
-- block:
+- name: Fix SELinux
+  when: ansible_selinux.status == "enabled"
+  tags: ["owner"]
+  block:
     - name: Set SELinux contexts
-      sefcontext:
+      community.general.sefcontext:
         target: "{{ item }}"
         setype: httpd_sys_rw_content_t
         state: present
@@ -114,37 +119,34 @@
         - '/var/www/html/nextcloud/.user.ini'
         - '/var/www/html/nextcloud/3rdparty/aws/aws-sdk-php/src/data/logs(/.*)?'
 
-    - name: Restore SELinux contexts
-      command: restorecon -r /var/www/html/nextcloud
+    - name: Restore SELinux contexts  # noqa no-changed-when - verbose is slower, whatever
+      ansible.builtin.command: restorecon -r /var/www/html/nextcloud
 
     - name: Enable httpd_can_network_connect
-      seboolean:
+      ansible.posix.seboolean:
         name: httpd_can_network_connect
         state: true
         persistent: true
 
-  when: ansible_selinux.status == "enabled"
-  tags: ["owner"]
-
 - name: Enable Apache2 modules
-  apache2_module:
+  community.general.apache2_module:
     name: "{{ item }}"
     state: present
   loop: "{{ nextcloud_apache_modules }}"
   tags: ["apache"]
 
 - name: Copy Apache config
-  template:
+  ansible.builtin.template:
     src: nextcloud.conf.j2
     dest: /etc/httpd/conf.d/nextcloud.conf
     owner: root
     group: root
-    mode: 0644
-  notify: restart apache
+    mode: "0644"
+  notify: Restart apache
   tags: ["apache"]
 
 - name: Configure SSL
-  include_tasks:
+  ansible.builtin.include_tasks:
     file: ssl.yml
     apply:
       tags: ["apache", "ssl"]
@@ -152,28 +154,28 @@
   tags: ["apache", "ssl"]
 
 - name: Copy initial nextcloud config
-  template:
+  ansible.builtin.template:
     src: config.php.j2
     dest: /var/www/html/nextcloud/config/config.php
     force: "{{ nextcloud_config_overwrite | bool }}"
     owner: apache
     group: apache
-    mode: 0640
+    mode: "0640"
   tags: ["configure"]
 
 - name: Enable ACPu CLI
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: "/etc/php.d/40-apcu.ini"
     regexp: '^;?apc.enable_cli\s*='
     line: "apc.enable_cli=1"
     state: present
   notify:
-    - restart apache
-    - restart php-fpm
+    - Restart apache
+    - Restart php-fpm
   tags: ["php"]
 
 - name: Configure php-fpm
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: "/etc/php-fpm.d/www.conf"
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
@@ -182,13 +184,13 @@
   loop_control:
     label: "{{ item.line }}"
   notify:
-    - restart apache
-    - restart php-fpm
+    - Restart apache
+    - Restart php-fpm
   tags: ["php", "php-fpm"]
   when: nextcloud_config_php_fpm | bool
 
 - name: Configure opcache
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: "/etc/php.d/10-opcache.ini"
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
@@ -209,12 +211,12 @@
   loop_control:
     label: "{{ item.line }}"
   notify:
-    - restart apache
-    - restart php-fpm
+    - Restart apache
+    - Restart php-fpm
   tags: ["php"]
 
 - name: Configure php.ini
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: "/etc/php.ini"
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
@@ -223,18 +225,18 @@
   loop_control:
     label: "{{ item.line }}"
   notify:
-    - restart apache
-    - restart php-fpm
+    - Restart apache
+    - Restart php-fpm
   tags: ["php"]
 
 - name: Install Nextcloud cron jobs
-  copy:
+  ansible.builtin.copy:
     src: "nextcloud-cron.{{ item }}"
     dest: "/etc/systemd/system/nextcloud-cron.{{ item }}"
     owner: root
     group: root
-    mode: 0644
-  notify: enable and start nextcloud cron timer
+    mode: "0644"
+  notify: Enable and start nextcloud cron timer
   loop:
     - service
     - timer

@@ -1,23 +1,23 @@
 ---
 
-- name: enable and start redis
-  systemd:
+- name: Enable and start redis
+  ansible.builtin.systemd:
     name: redis
     state: started
     enabled: true
 
-- name: restart apache
-  systemd:
+- name: Restart apache
+  ansible.builtin.systemd:
     name: httpd
     state: restarted
 
-- name: restart php-fpm
-  systemd:
+- name: Restart php-fpm
+  ansible.builtin.systemd:
     name: php-fpm
     state: restarted
 
-- name: enable and start nextcloud cron timer
-  systemd:
+- name: Enable and start nextcloud cron timer
+  ansible.builtin.systemd:
     name: nextcloud-cron.timer
     state: started
     enabled: true
