@@ -1,0 +1,26 @@
+---
+
+- name: Download Nextcloud {{ nextcloud_version }}
+  ansible.builtin.get_url:
+    url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip"
+    dest: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
+    checksum: "sha256:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip.sha256"
+    mode: "0644"
+  tags:
+    - "download"
+
+- name: Unarchive Nextcloud
+  ansible.builtin.unarchive:
+    src: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
+    dest: /var/www/html
+    remote_src: true
+  tags:
+    - "unarchive"
+
+- name: Create Nextcloud data dir
+  ansible.builtin.file:
+    path: /var/www/html/nextcloud/data
+    state: directory
+    owner: apache
+    group: apache
+    mode: "0770"

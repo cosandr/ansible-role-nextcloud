@@ -65,32 +65,20 @@
     enabled: true
   tags: ["apache"]
 
-- name: Download Nextcloud {{ nextcloud_version }}
-  ansible.builtin.get_url:
-    url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip"
-    dest: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
-    checksum: "sha256:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip.sha256"
-    mode: "0644"
+- name: Check if Nextcloud is already installed
+  ansible.builtin.stat:
+    path: /var/www/html/nextcloud/version.php
+  register: __nc_version
   tags:
     - "install"
     - "download"
 
-- name: Unarchive Nextcloud
-  ansible.builtin.unarchive:
-    src: "/tmp/nextcloud-{{ nextcloud_version }}.zip"
-    dest: /var/www/html
-    remote_src: true
-  tags:
-    - "install"
-    - "unarchive"
-
-- name: Create Nextcloud data dir
-  ansible.builtin.file:
-    path: /var/www/html/nextcloud/data
-    state: directory
-    owner: apache
-    group: apache
-    mode: "0770"
+- name: Include install tasks
+  ansible.builtin.include_tasks:
+    file: install.yml
+    apply:
+      tags: ["install"]
+  when: nextcloud_force_install | bool or not __nc_version.stat.exists
   tags: ["install"]
 
 - name: Set /var/www/html ownership
