@@ -1,5 +1,25 @@
 ---
 
+- name: Fetch latest release
+  when: nextcloud_version == "latest"
+  block:
+    - name: Get latest release
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/nextcloud/server/releases/latest"
+        method: GET
+        return_content: true
+        status_code: 200
+        body_format: json
+        validate_certs: true
+      register: _latest_release
+      until: _latest_release.status == 200
+      retries: 5
+      check_mode: false
+
+    - name: "Set Nextcloud version to {{ _latest_release.json.tag_name[1:] }}"
+      ansible.builtin.set_fact:
+        nextcloud_version: "{{ _latest_release.json.tag_name[1:] }}"
+
 - name: Download Nextcloud {{ nextcloud_version }}
   ansible.builtin.get_url:
     url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip"

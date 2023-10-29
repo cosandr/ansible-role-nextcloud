@@ -17,7 +17,7 @@ nextcloud_ssl_private_key: "/etc/pki/tls/private/localhost.key"
 
 nextcloud_max_upload_size: "1024M"
 nextcloud_force_install: false
-nextcloud_version: "23.0.2"
+nextcloud_version: "latest"
 nextcloud_requirements:
   - bzip2
   - curl
