@@ -1,0 +1,15 @@
+---
+
+nextcloud_opcache_default_config:
+  - regexp: '^;?opcache.enable\s*='
+    line: 'opcache.enable=1'
+  - regexp: '^;?opcache.interned_strings_buffer\s*='
+    line: 'opcache.interned_strings_buffer={{ nextcloud_opcache_interned_strings_buffer }}'
+  - regexp: '^;?opcache.max_accelerated_files\s*='
+    line: 'opcache.max_accelerated_files={{ nextcloud_opcache_max_accelerated_files }}'
+  - regexp: '^;?opcache.memory_consumption\s*='
+    line: 'opcache.memory_consumption={{ nextcloud_opcache_memory_consumption }}'
+  - regexp: '^;opcache.save_comments\s*='
+    line: 'opcache.save_comments=1'
+  - regexp: '^;?opcache.revalidate_freq\s*='
+    line: 'opcache.revalidate_freq=1'

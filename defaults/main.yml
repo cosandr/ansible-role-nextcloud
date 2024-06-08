@@ -81,3 +81,9 @@ nextcloud_php_fpm_config:
   - regexp: '^;?pm\.max_spare_servers\s*='
     line: 'pm.max_spare_servers = {{ ((__pm_max_children | float) * 0.75) | int }}'
 nextcloud_config_php_fpm: true
+
+nextcloud_opcache_interned_strings_buffer: 8
+nextcloud_opcache_max_accelerated_files: 10000
+nextcloud_opcache_memory_consumption: 128
+nextcloud_opcache_extra_config: []
+nextcloud_opcache_config: "{{ nextcloud_opcache_default_config + nextcloud_opcache_extra_config }}"

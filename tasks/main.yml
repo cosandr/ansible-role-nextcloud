@@ -183,19 +183,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: present
-  with_items:
-    - regexp: '^;?opcache.enable\s*='
-      line: 'opcache.enable=1'
-    - regexp: '^;?opcache.interned_strings_buffer\s*='
-      line: 'opcache.interned_strings_buffer=8'
-    - regexp: '^;?opcache.max_accelerated_files\s*='
-      line: 'opcache.max_accelerated_files=10000'
-    - regexp: '^;?opcache.memory_consumption\s*='
-      line: 'opcache.memory_consumption=128'
-    - regexp: '^;opcache.save_comments\s*='
-      line: 'opcache.save_comments=1'
-    - regexp: '^;?opcache.revalidate_freq\s*='
-      line: 'opcache.revalidate_freq=1'
+  loop: "{{ nextcloud_opcache_config }}"
   loop_control:
     label: "{{ item.line }}"
   notify:
