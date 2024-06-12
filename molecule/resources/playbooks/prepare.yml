@@ -4,5 +4,7 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Install python3 and sudo
-      ansible.builtin.raw: dnf install -y sudo python3
+    - name: Install requirements
+      ansible.builtin.dnf:
+        name: sudo
+        state: present

@@ -22,7 +22,7 @@ jobs:
       - name: Install molecule
         run: |
           pip install -U pip wheel setuptools
-          pip install 'molecule<25.0' 'ansible-lint<25' 'yamllint<1.34'
+          pip install 'ansible<10' 'molecule<25.0' 'ansible-lint<25' 'yamllint<1.34'
           pip install 'molecule-plugins[podman]<24.0'
 
       - name: Run molecule
