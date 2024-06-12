@@ -1,0 +1,50 @@
+---
+
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: podman
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+platforms:
+  - name: alma8-nextcloud
+    image: "ghcr.io/almalinux/8-init"
+    pre_build_image: true
+    tty: false
+    command: "/sbin/init"
+    systemd: true
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+    groups: ["el", "el8"]
+
+  - name: alma9-nextcloud
+    image: "ghcr.io/almalinux/9-init"
+    pre_build_image: true
+    tty: false
+    command: "/sbin/init"
+    systemd: true
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+    groups: ["el", "el9"]
+provisioner:
+  name: ansible
+  log: true
+  playbooks:
+    prepare: ../resources/playbooks/prepare.yml
+    converge: ../resources/playbooks/converge.yml
+    verify: ../resources/playbooks/verify.yml
+  inventory:
+    group_vars:
+      all:
+        nextcloud_generate_certificate: true
+        nextcloud_domain: "nextcloud.example.com"
+        nextcloud_server_name: "{{ nextcloud_domain }}"
+        nextcloud_php_version: "8.2"
+        nextcloud_certificate_alt_name:
+          - "DNS:{{ nextcloud_domain }}"
+verifier:
+  name: ansible

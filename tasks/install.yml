@@ -1,5 +1,76 @@
 ---
 
+- name: Include OS-specific variables.
+  ansible.builtin.include_vars: "{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml"
+  tags: ["install"]
+
+- name: Import Remi key
+  ansible.builtin.rpm_key:
+    state: present
+    key: "{{ nextcloud_remi_gpg_key }}"
+  tags: ["reqs"]
+
+- name: Install Remi repo
+  ansible.builtin.dnf:
+    name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
+    state: present
+  tags: ["reqs"]
+
+- name: Get PHP module state
+  changed_when: false
+  check_mode: false
+  ansible.builtin.command: dnf module info php
+  register: __dnf_php
+
+- name: Reset if required
+  tags: ["reqs"]
+  when: __dnf_php.stdout_lines | select('match', '^Stream\\s+:\\s+' + 'remi-' + nextcloud_php_version + '\\s+\\[e\\].*') | length == 0
+  block:
+    - name: Reset PHP module  # noqa no-changed-when
+      ansible.builtin.command: dnf -y module reset php
+
+    - name: Enable Remi PHP {{ nextcloud_php_version }}  # noqa no-changed-when
+      ansible.builtin.command: "dnf -y module enable php:remi-{{ nextcloud_php_version }}"
+
+- name: Install RPM Fusion
+  ansible.builtin.dnf:
+    name:
+      - "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+      - "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  tags: ["reqs"]
+
+- name: Enable powertools
+  ansible.builtin.command: "dnf config-manager --enable powertools"
+  changed_when: false
+  tags: ["reqs"]
+  when: ansible_distribution_major_version | int == 8
+
+- name: Install packages
+  ansible.builtin.dnf:
+    name: "{{ nextcloud_requirements }}"
+    state: present
+    # package curl-minimal-7.76.1-29.el9_4.x86_64 from @System conflicts with curl provided by curl-7.76.1-29.el9_4.x86_64 from baseos
+    allowerasing: true
+  tags: ["reqs"]
+
+- name: Install redis
+  ansible.builtin.dnf:
+    name: redis
+    state: present
+  notify: Enable and start redis
+  tags:
+    - "reqs"
+    - "redis"
+
+- name: Enable and start apache
+  ansible.builtin.systemd:
+    name: httpd
+    state: started
+    enabled: true
+  tags: ["apache"]
+
 - name: Fetch latest release
   when: nextcloud_version == "latest"
   block:

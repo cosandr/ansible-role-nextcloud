@@ -1,7 +1,9 @@
 ---
 
 galaxy_info:
+  role_name: nextcloud
   author: Andrei Costescu
+  namespace: cosandr
   description: This role installs and configures Nextcloud on EL8+
   license: MIT
   min_ansible_version: "2.9"

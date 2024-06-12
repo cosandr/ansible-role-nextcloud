@@ -1,70 +1,5 @@
 ---
 
-- name: Install Remi repo
-  ansible.builtin.dnf:
-    name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
-    state: present
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Reset PHP module
-  ansible.builtin.command: dnf -y module reset php
-  changed_when: false
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Enable Remi PHP {{ nextcloud_php_version }}
-  ansible.builtin.command: "dnf -y module enable php:remi-{{ nextcloud_php_version }}"
-  changed_when: false
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Install RPM Fusion
-  ansible.builtin.dnf:
-    name:
-      - "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
-      - "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
-    state: present
-    disable_gpg_check: true
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Enable powertools
-  ansible.builtin.command: "dnf config-manager --enable powertools"
-  changed_when: false
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Install packages
-  ansible.builtin.dnf:
-    name: "{{ nextcloud_requirements }}"
-    state: present
-  tags:
-    - "install"
-    - "reqs"
-
-- name: Install redis
-  ansible.builtin.dnf:
-    name: redis
-    state: present
-  notify: Enable and start redis
-  tags:
-    - "install"
-    - "reqs"
-    - "redis"
-
-- name: Enable and start apache
-  ansible.builtin.systemd:
-    name: httpd
-    state: started
-    enabled: true
-  tags: ["apache"]
-
 - name: Check if Nextcloud is already installed
   ansible.builtin.stat:
     path: /var/www/html/nextcloud/version.php
@@ -115,13 +50,6 @@
         name: httpd_can_network_connect
         state: true
         persistent: true
-
-- name: Enable Apache2 modules
-  community.general.apache2_module:
-    name: "{{ item }}"
-    state: present
-  loop: "{{ nextcloud_apache_modules }}"
-  tags: ["apache"]
 
 - name: Copy Apache config
   ansible.builtin.template:

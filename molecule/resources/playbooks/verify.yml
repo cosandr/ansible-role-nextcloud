@@ -1,0 +1,25 @@
+---
+
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Add server name to hosts file
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 {{ nextcloud_domain }}"
+        unsafe_writes: true
+
+    - name: Ensure nextcloud is running
+      ansible.builtin.uri:
+        url: "https://{{ nextcloud_domain }}"
+        return_content: true
+        ca_path: /etc/pki/tls/certs/localhost.crt
+      register: res
+
+    - name: Basic verify
+      ansible.builtin.assert:
+        that:
+          - "'PostgreSQL' in res.content"
+          - res.x_powered_by.startswith("PHP/" + nextcloud_php_version)
+          - res.server.startswith("Apache/")
