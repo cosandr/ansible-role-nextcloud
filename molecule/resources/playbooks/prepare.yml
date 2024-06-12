@@ -5,7 +5,6 @@
   gather_facts: false
   tasks:
     - name: Install requirements
-      ansible.builtin.package:
+      ansible.builtin.dnf:
         name: sudo
-        update_cache: true
         state: present
