@@ -15,6 +15,7 @@ nextcloud_certificate_alt_name:
 nextcloud_ssl_certificate: "/etc/pki/tls/certs/localhost.crt"
 nextcloud_ssl_private_key: "/etc/pki/tls/private/localhost.key"
 
+nextcloud_install_occ_wrapper: true
 nextcloud_max_upload_size: "1024M"
 nextcloud_force_install: false
 nextcloud_version: "latest"

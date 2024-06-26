@@ -145,3 +145,20 @@
     - service
     - timer
   tags: ["cron"]
+
+- name: Install occ wrapper
+  ansible.builtin.copy:
+    src: occ.sh
+    dest: /usr/local/bin/occ
+    owner: root
+    group: root
+    mode: "0755"
+  when: nextcloud_install_occ_wrapper | bool
+  tags: ["occ"]
+
+- name: Remove occ wrapper
+  ansible.builtin.file:
+    path: /usr/local/bin/occ
+    state: absent
+  when: not nextcloud_install_occ_wrapper | bool
+  tags: ["occ"]
